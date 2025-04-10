@@ -145,6 +145,24 @@ hardware_interface::return_type DFRobotDCMotorHardware::write(
     // Clamp to -127 to 127
     motor_command_left = std::max(std::min(motor_command_left, 127.0), -127.0);
     motor_command_right = std::max(std::min(motor_command_right, 127.0), -127.0);
+    
+
+    // Spin-in-place assist logic
+    const double min_spin_cmd = 20.0;  // Empirically tuned (out of 127)
+    if ((motor_command_left > 0 && motor_command_right < 0) ||
+        (motor_command_left < 0 && motor_command_right > 0)) {
+        
+        if (std::abs(motor_command_left) < min_spin_cmd &&
+            std::abs(motor_command_right) < min_spin_cmd) {
+
+            double direction_left = motor_command_left > 0 ? 1.0 : -1.0;
+            double direction_right = motor_command_right > 0 ? 1.0 : -1.0;
+
+            motor_command_left = direction_left * min_spin_cmd;
+            motor_command_right = direction_right * min_spin_cmd;
+        }
+    }
+
 
     // Cast to int8_t
     int8_t left_command = static_cast<int8_t>(motor_command_left);
